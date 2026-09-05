@@ -98,7 +98,7 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 <body>
 <div class="wrap">
 <header>
-  <h1>Flood Water System</h1>
+  <h1>Flood Water Alarm System</h1>
   <div class="right">
     <div id="clock">--:--:--</div>
     <div id="date">--</div>
@@ -125,9 +125,9 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
     </div>
     <div class="big-value" id="distanceVal">--</div>
     <div class="subtitle">Jarak Sensor ke Permukaan Air (cm)</div>
-    <div class="threshold-info" id="thresholdInfo">Sirine ON &gt; 30 cm | OFF ≤ 25 cm</div>
+    <div class="threshold-info" id="thresholdInfo">Sirine ON &lt; 30 cm | OFF ≥ 35 cm</div>
     <div class="small-row">
-      <div class="stat-mini"><h4>Batas Atas</h4><p id="limitVal">-- cm</p></div>
+      <div class="stat-mini"><h4>Batas Bawah</h4><p id="limitVal">-- cm</p></div>
       <div class="stat-mini"><h4>Selisih</h4><p id="marginVal">--</p></div>
       <div class="stat-mini"><h4>Status</h4><p id="safetyStatus">--</p></div>
     </div>
@@ -159,7 +159,7 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 
       <div class="controls">
         <div class="control-group">
-          <div class="control-label">Batas Atas (cm)</div>
+          <div class="control-label">Batas Bawah (cm)</div>
           <input id="setpoint" type="number" min="1" max="500" value="30" class="control-input"/>
         </div>
         <div class="control-group">
@@ -176,7 +176,7 @@ header .right{text-align:right;color:var(--muted);font-size:14px}
 
     <div class="info-text">
       <div><b>Hysteresis</b> mencegah sirine berkedip di sekitar batas</div>
-      <div>Sirine ON saat jarak &gt; batas atas, OFF saat jarak ≤ (batas atas - hysteresis)</div>
+      <div>Sirine ON saat jarak &lt; batas bawah, OFF saat jarak ≥ (batas bawah + hysteresis)</div>
     </div>
   </div>
 </div>
@@ -602,8 +602,8 @@ document.getElementById('clearTrends').addEventListener('click', () => {
 // tidak bentrok. Jika broker Anda memakai ACL per-user, buat user MQTT
 // baru khusus device ini.
 const mqttHost = "a83ccc7ca89145d195e89865c270d0f2.s1.eu.hivemq.cloud";
-const mqttUser = "Soil_System";
-const mqttPass = "Soilsystem123";
+const mqttUser = "Water_Sistem_Sensor";
+const mqttPass = "45499999";
 const clientId = "web_wateralarm_" + Math.random().toString(16).substr(2, 8);
 
 const client = mqtt.connect(`wss://${mqttHost}:8884/mqtt`, {
@@ -646,8 +646,8 @@ client.on("message", (topic, message) => {
       distEl.innerText = dist.toFixed(1) + ' cm';
       distEl.classList.toggle('alarm', isAlarm);
 
-      document.getElementById('limitVal').innerText = d.batasAtas + ' cm';
-      const margin = (dist - d.batasAtas).toFixed(1);
+      document.getElementById('limitVal').innerText = d.batasBawah + ' cm';
+      const margin = (dist - d.batasBawah).toFixed(1);
       document.getElementById('marginVal').innerText = (margin > 0 ? '+' : '') + margin + ' cm';
       document.getElementById('safetyStatus').innerText = isAlarm ? 'BAHAYA' : 'AMAN';
       document.getElementById('safetyStatus').style.color = isAlarm ? 'var(--danger)' : 'var(--success)';
@@ -660,11 +660,11 @@ client.on("message", (topic, message) => {
       document.getElementById('modeSelect').value = d.mode;
       updateManualControls();
 
-      if (!userEditingSetpoint) document.getElementById('setpoint').value = d.batasAtas;
+      if (!userEditingSetpoint) document.getElementById('setpoint').value = d.batasBawah;
       if (!userEditingHysteresis) document.getElementById('hysteresis').value = d.hysteresis || 5;
 
-      const low = d.lowThreshold || (d.batasAtas - (d.hysteresis || 5));
-      document.getElementById('thresholdInfo').innerText = `Sirine ON > ${d.batasAtas} cm | OFF ≤ ${low} cm`;
+      const high = d.offThreshold || (d.batasBawah + (d.hysteresis || 5));
+      document.getElementById('thresholdInfo').innerText = `Sirine ON < ${d.batasBawah} cm | OFF ≥ ${high} cm`;
 
       addTrendPoint(dist);
     } catch (e) { console.error("Data parse error:", e); }
@@ -697,7 +697,7 @@ document.getElementById('setBtn').addEventListener('click', () => {
   hy = Math.max(1, Math.min(50, hy));
   userEditingSetpoint = false;
   userEditingHysteresis = false;
-  client.publish("water_alarm/setlimit", JSON.stringify({ batasAtas: lim }));
+  client.publish("water_alarm/setlimit", JSON.stringify({ batasBawah: lim }));
   client.publish("water_alarm/hysteresis", JSON.stringify({ hysteresis: hy }));
 });
 
